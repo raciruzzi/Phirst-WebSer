@@ -22,6 +22,8 @@ type Producto struct {
 
 var prods []Producto
 
+var idToPut = len(prods) + 1
+
 func main() {
 	if err := levantarJson("products.json"); err != nil {
 		log.Fatal(err)
@@ -47,7 +49,7 @@ func nuevoProd(c *gin.Context) {
 		return
 	}
 	//Primero el id, como dice que no es necesario, por mas de que me pase uno, lo voy a sobreescribir
-	elNuevo.Id = len(prods) + 1
+	elNuevo.Id = idToPut
 	//Ahora todos los datos deben tener algo, asumo que no nos pueden pasar Quantity 0 ni Precio 0
 	if elNuevo.Name == "" || elNuevo.Quantity == 0 || elNuevo.CodeValue == "" || elNuevo.Expiration == "" || elNuevo.Price == 0 {
 		c.JSON(400, gin.H{
@@ -72,6 +74,7 @@ func nuevoProd(c *gin.Context) {
 		return
 	}
 	//Listo todos los chequeos lo agregamos
+	idToPut++
 	prods = append(prods, elNuevo)
 	c.JSON(200, elNuevo)
 }
