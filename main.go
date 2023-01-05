@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -33,11 +34,53 @@ func main() {
 	productos.GET("", getProds)
 	productos.GET("/:id", getProd)
 	productos.GET("/search", prodSearcher)
+	productos.POST("", nuevoProd)
 	router.Run()
+}
+
+func nuevoProd(c *gin.Context) {
+	var elNuevo Producto
+	if err := c.ShouldBindJSON(&elNuevo); err != nil {
+		c.JSON(400, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	//Primero el id, como dice que no es necesario, por mas de que me pase uno, lo voy a sobreescribir
+	elNuevo.Id = len(prods) + 1
+	//Ahora todos los datos deben tener algo, asumo que no nos pueden pasar Quantity 0 ni Precio 0
+	if elNuevo.Name == "" || elNuevo.Quantity == 0 || elNuevo.CodeValue == "" || elNuevo.Expiration == "" || elNuevo.Price == 0 {
+		c.JSON(400, gin.H{
+			"error": "Solo podes dejar en blanco los campos 'id' y 'is_published'",
+		})
+		return
+	}
+	//Nos fijamos que el code_value sea unico
+	for _, prod := range prods {
+		if prod.CodeValue == elNuevo.CodeValue {
+			c.JSON(400, gin.H{
+				"error": "Ese code_value ya existe",
+			})
+			return
+		}
+	}
+	//Ahora chequeamos que la fecha este bien
+	if _, err := time.Parse("02/01/2006", elNuevo.Expiration); err != nil {
+		c.JSON(400, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	//Listo todos los chequeos lo agregamos
+	prods = append(prods, elNuevo)
+	c.JSON(200, elNuevo)
 }
 
 func prodSearcher(c *gin.Context) {
 	sPrice := c.Query("priceGt")
+	if sPrice == "" {
+		sPrice = "0"
+	}
 	price, err := strconv.ParseFloat(sPrice, 8)
 	if err != nil {
 		c.String(500, "No se pudo convertir el price a float")
