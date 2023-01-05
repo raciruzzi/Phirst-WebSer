@@ -8,16 +8,17 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 type Producto struct {
 	Id          int     `json:"id"`
-	Name        string  `json:"name"`
-	Quantity    int     `json:"quantity"`
-	CodeValue   string  `json:"code_value"`
+	Name        string  `json:"name" validate:"required"`
+	Quantity    int     `json:"quantity" validate:"required"`
+	CodeValue   string  `json:"code_value" validate:"required"`
 	IsPublished bool    `json:"is_published"`
-	Expiration  string  `json:"expiration"`
-	Price       float64 `json:"price"`
+	Expiration  string  `json:"expiration" validate:"required"`
+	Price       float64 `json:"price" validate:"required"`
 }
 
 var prods []Producto
@@ -51,12 +52,22 @@ func nuevoProd(c *gin.Context) {
 	//Primero el id, como dice que no es necesario, por mas de que me pase uno, lo voy a sobreescribir
 	elNuevo.Id = idToPut
 	//Ahora todos los datos deben tener algo, asumo que no nos pueden pasar Quantity 0 ni Precio 0
-	if elNuevo.Name == "" || elNuevo.Quantity == 0 || elNuevo.CodeValue == "" || elNuevo.Expiration == "" || elNuevo.Price == 0 {
+	validador := validator.New()
+
+	if err := validador.Struct(&elNuevo); err != nil {
 		c.JSON(400, gin.H{
-			"error": "Solo podes dejar en blanco los campos 'id' y 'is_published'",
+			"error": err.Error(),
 		})
 		return
 	}
+
+	// if elNuevo.Name == "" || elNuevo.Quantity == 0 || elNuevo.CodeValue == "" || elNuevo.Expiration == "" || elNuevo.Price == 0 {
+	// 	c.JSON(400, gin.H{
+	// 		"error": "Solo podes dejar en blanco los campos 'id' y 'is_published'",
+	// 	})
+	// 	return
+	// }
+
 	//Nos fijamos que el code_value sea unico
 	for _, prod := range prods {
 		if prod.CodeValue == elNuevo.CodeValue {
